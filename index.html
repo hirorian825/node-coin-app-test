@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コイン獲得申請</title>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            color: #333;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 500px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #005f73;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            width: 100px;
+            text-align: right;
+            margin-right: 10px;
+            color: #005f73;
+        }
+
+        .form-group select,
+        .form-group input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #e0f7fa;
+            color: #333;
+        }
+        .bgc-reset {
+            background-color: #f8f9fa !important;
+        }
+
+        #fromInput {
+            margin-right: 15%;
+        }
+
+        input[type="submit"] {
+            width: 30%;
+            padding: 10px;
+            background-color: #0077b6;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #00b4d8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>コイン獲得申請</h1>
+        <form id="coinForm">
+            <div id="fromInput">
+                <div class="form-group">
+                    <label for="emailSelect">ユーザ</label>
+                    <select name="email" id="emailSelect">
+                        <option value="">Select Email</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="coin_id">コイン</label>
+                    <select name="coin_id" id="coinSelect">
+                        <option value="">Select Coin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="acquired_amount">獲得枚数</label>
+                    <input type="text" class="bgc-reset" name="acquired_amount" id="acquired_amount" placeholder="Amount" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="status">ステータス</label>
+                    <select name="status" id="status">
+                        <option value="Pending">申請</option>
+                        <option value="Reapply">再申請</option>
+                    </select>
+                </div>
+            </div>
+            <input type="submit" value="申請">
+        </form>
+    </div>
+
+    <script>
+        window.onload = async function () {
+            // ユーザ：Emailリスト取得
+            try {
+                console.log("HTTP通信");
+                // 非同期でHTTP GETリクエストを送信
+                const response = await fetch('http://localhost:3000/users', {
+                    method: 'GET',
+                });
+                const data = await response.json();
+                console.log(data); // レスポンスをコンソールに出力
+                const emailSelect = document.getElementById('emailSelect');
+                // 'email'というパラメータをリストで取り出して、プルダウンの選択肢に設定
+                data.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.email;
+                    option.textContent = user.email;
+                    emailSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('エラーです:', error);
+            }
+
+            // コインリスト取得            
+            try {
+                console.log("HTTP通信");
+                // 非同期でHTTP GETリクエストを送信
+                const response = await fetch('http://localhost:3000/coins', {
+                    method: 'GET',
+                });
+                const data = await response.json();
+                console.log(data); // レスポンスをコンソールに出力
+                const coinSelect = document.getElementById('coinSelect');
+                // 'coin_id'と'coin_name'をリストで取り出して、プルダウンの選択肢に設定
+                data.forEach(coin => {
+                    const option = document.createElement('option');
+                    option.value = coin._id;
+                    option.textContent = coin.coin_name;
+                    option.dataset.amount = coin.amount;
+                    coinSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('エラーです:', error);
+            }
+        };
+
+        const coinSelect = document.getElementById('coinSelect');
+        coinSelect.addEventListener('change', () => {
+            document.getElementById('acquired_amount').value = coinSelect.options[coinSelect.selectedIndex].dataset.amount;
+        })
+
+        document.getElementById('coinForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // フォームのデフォルトの送信を防止
+
+            const email = document.querySelector('select[name="email"]').value;
+            const coin_id = document.querySelector('select[name="coin_id"]').value;
+            const acquired_amount = document.querySelector('input[name="acquired_amount"]').value;
+            const status = document.querySelector('select[name="status"]').value;
+
+            const formData = {
+                email: email,
+                coin_id: coin_id,
+                acquired_amount: acquired_amount,
+                status: status
+            };
+            console.log(JSON.stringify(formData, null, 2)); // JSON形式で出力
+
+            postApply(
+                'http://localhost:3000/acquired',
+                {
+                    "email": email,
+                    "coin_id": coin_id,
+                    "acquired_amount": acquired_amount,
+                    "status": status,
+                }
+            );
+
+            // alert(`Email: ${email}\nCoin ID: ${coin_id}\nAcquired Amount: ${acquired_amount}\nStatus: ${status}`);
+        });
+
+        async function postApply(url, data) {
+            try {
+                // リクエストを送信し、レスポンスを受け取る
+                const response = await fetch(url, {
+                    method: 'POST', // メソッドをPOSTに設定
+                    headers: {
+                        'Content-Type': 'application/json' // JSON形式でデータを送信するためのヘッダー
+                    },
+                    body: JSON.stringify(data) // データをJSON文字列に変換して送信
+                });
+
+                // // レスポンスをJSONとして解析し、返す
+                console.log(response);
+                alert("コイン獲得を申請しました。");
+            } catch (error) {
+                console.error('申請に失敗しました:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>

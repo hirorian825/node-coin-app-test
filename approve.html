@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コイン獲得申請管理</title>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            color: #333;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+            height: calc(var(--vh, 1vh) * 110);
+            margin: 0;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            /* max-width: 800px; */
+            overflow-x: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 20px;
+            font-size: 24px;
+            color: #005f73;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        table th {
+            background-color: #0077b6;
+            color: #fff;
+        }
+
+        .action-button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            width: 40%;
+        }
+
+        .approve {
+            background-color: #0077b6;
+        }
+
+        .reject {
+            background-color: #dc3545;
+        }
+
+        .action-button:hover {
+            opacity: 0.9;
+        }
+
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>コイン獲得申請管理</h1>
+        <table id="requestTable">
+            <thead>
+                <tr>
+                    <th>申請ID</th>
+                    <th>ユーザ</th>
+                    <th>コイン</th>
+                    <th>獲得数</th>
+                    <th>ステータス</th>
+                    <th>アクション</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- JavaScriptでデータを挿入 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+        window.onload = async function () {
+            getAcquiredHistries();
+        };
+
+        function truncateText(text, maxLength) {
+            if (text == typeof String && text.length > maxLength) {
+                return text.slice(0, maxLength) + '...';
+            }
+            return text;
+        }
+
+        async function getAcquiredHistries() {
+            // ユーザ：申請リスト取得
+            try {
+                console.log("HTTP通信");
+                // 非同期でHTTP GETリクエストを送信
+                const response = await fetch('http://localhost:3000/acquiredHistories', {
+                    method: 'GET',
+                });
+                const data = await response.json();
+                console.log(data); // レスポンスをコンソールに出力
+
+                const tbody = document.querySelector('#requestTable tbody');
+                while( tbody.firstChild ){
+                    tbody.removeChild( tbody.firstChild );
+                }
+                data.forEach(item => {
+                    const row = createTableRow(item);
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('エラーです:', error);
+            }
+        }
+
+        function createTableRow(item) {
+            const row = document.createElement('tr');
+
+            const requestId = document.createElement('td');
+            requestId.textContent = truncateText(item._id, 20);
+            requestId.classList.add('truncate');
+            row.appendChild(requestId);
+
+            const email = document.createElement('td');
+            email.textContent = truncateText(item.email, 20);
+            email.classList.add('truncate');
+            row.appendChild(email);
+
+            const coinId = document.createElement('td');
+            coinId.textContent = truncateText(item.coin_id, 20);
+            coinId.classList.add('truncate');
+            row.appendChild(coinId);
+
+            const acquiredAmount = document.createElement('td');
+            acquiredAmount.textContent = item.acquired_amount;
+            acquiredAmount.classList.add('truncate');
+            row.appendChild(acquiredAmount);
+
+            const status = document.createElement('td');
+            status.textContent = truncateText(item.status, 20);
+            status.classList.add('truncate');
+            row.appendChild(status);
+
+            const action = document.createElement('td');
+
+            const approveButton = document.createElement('button');
+            approveButton.textContent = '承認';
+            approveButton.classList.add('action-button', 'approve');
+            approveButton.onclick = function () {
+                const url = `http://localhost:3000/acquired/${item._id}`;
+                console.log(url);
+                const data = {
+                    "status": "Approved",
+                };
+                patchApply(url, data, `${item._id}を承認しました`);
+            };
+
+            const rejectButton = document.createElement('button');
+            rejectButton.textContent = '差し戻し';
+            rejectButton.classList.add('action-button', 'reject');
+            rejectButton.onclick = function () {
+                const url = `http://localhost:3000/acquired/${item._id}`;
+                console.log(url);
+                const data = {
+                    "status": "Rejected",
+                };
+                patchApply(url, data, `${item._id}を差し戻しました`);
+            };
+
+            action.appendChild(approveButton);
+            action.appendChild(rejectButton);
+            row.appendChild(action);
+
+            return row;
+        }
+
+        async function patchApply(url, data, successMs) {
+            try {
+                // リクエストを送信し、レスポンスを受け取る
+                const response = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json' // JSON形式でデータを送信するためのヘッダー
+                    },
+                    body: JSON.stringify(data) // データをJSON文字列に変換して送信
+                });
+
+                // レスポンスをJSONとして解析し、返す
+                console.log(response);
+                getAcquiredHistries();
+                alert(successMs);
+            } catch (error) {
+                console.error('通信に失敗しました:', error);
+            }
+        }
+
+    </script>
+</body>
+
+</html>
