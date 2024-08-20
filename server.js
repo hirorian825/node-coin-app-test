@@ -19,6 +19,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// ルートURLにアクセスがあった場合、index.htmlを返す
+app.get('/approve', (req, res) => {
+    res.sendFile(path.join(__dirname, 'approve.html'));
+});
+
 /**
  * データベース接続
  */
