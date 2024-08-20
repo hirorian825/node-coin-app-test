@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const path = require('path');
+require('dotenv').config();
 
 const userRouter = require("./routes/userRoutes");
 const coinRouter = require("./routes/coinRoutes");
@@ -22,7 +23,7 @@ app.get('/', (req, res) => {
  * データベース接続
  */
 mongoose.connect(
-    "mongodb+srv://hirorian825:wVrTLRRuVMyNN1rg@cluster0.remio.mongodb.net/testMGDB?retryWrites=true&w=majority&appName=Cluster0"
+    "mongodb+srv://hirorian825:" + process.env.MONGDBPW + "@cluster0.remio.mongodb.net/testMGDB?retryWrites=true&w=majority&appName=Cluster0"
 ).then(() => console.log("DB接続=成功="))
 .catch((e) => console.log(e));
 
